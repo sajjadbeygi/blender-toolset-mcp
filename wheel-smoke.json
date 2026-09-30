@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "checks": [
+    "246 public tools discovered",
+    "create object via Blend AI",
+    "same object inspected via blend_ai",
+    "same object inspected via community",
+    "same object inspected via secure",
+    "same scene inspected via Blender Lab",
+    "transform via Blend AI verified via Lab code execution",
+    "live bpy lookup via community",
+    "community telemetry opt-out control",
+    "bundled API documentation search via Lab",
+    "real viewport screenshot passed through gateway",
+    "live scene resource",
+    "upstream workflow prompt",
+    "temporary object deleted"
+  ]
+}

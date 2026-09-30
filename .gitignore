@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+.coverage
+local.json
+.runtime/
+smoke-config.json
+.runtime-blender.log
+audit-config.json
+.runtime-audit.log
+.runtime-audit-knife.log
+
+# Local files excluded from publication
+.DS_Store
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+tool-audit.initial.json
+tool-audit-knife.json

@@ -1,0 +1,75 @@
+"""Blender command handlers - registers all handlers with the dispatcher."""
+
+from . import (
+    scene,
+    objects,
+    selection,
+    transforms,
+    modeling,
+    materials,
+    procedural,
+    raster,
+    lighting,
+    camera,
+    animation,
+    rendering,
+    curves,
+    sculpting,
+    uv,
+    physics,
+    geometry_nodes,
+    armature,
+    collections,
+    file_ops,
+    viewport,
+    code_exec,
+    booltool,
+    mesh_editing,
+    mesh_quality,
+    gpencil,
+    sweep,
+    print3d,
+)
+
+_modules = [
+    scene,
+    objects,
+    selection,
+    transforms,
+    modeling,
+    mesh_editing,
+    mesh_quality,
+    materials,
+    procedural,
+    raster,
+    lighting,
+    camera,
+    animation,
+    rendering,
+    curves,
+    sculpting,
+    uv,
+    physics,
+    geometry_nodes,
+    armature,
+    collections,
+    file_ops,
+    viewport,
+    code_exec,
+    booltool,
+    gpencil,
+    sweep,
+    print3d,
+]
+
+
+def register():
+    for mod in _modules:
+        if hasattr(mod, "register"):
+            mod.register()
+
+
+def unregister():
+    for mod in reversed(_modules):
+        if hasattr(mod, "unregister"):
+            mod.unregister()

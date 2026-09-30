@@ -1,0 +1,22 @@
+{
+  "blend_ai": {
+    "commit": "ce8fca24f2cd76db38d30c4bfd5fde7540c343bd",
+    "module": "blender_unified.engines.modeling",
+    "url": "https://github.com/HoldMyBeer-gg/blend-ai.git"
+  },
+  "community": {
+    "commit": "41a184322db3ccdcb2fdbc1f6994afe71bf9163c",
+    "module": "blender_unified.engines.community",
+    "url": "https://github.com/ahujasid/mcp-for-blender.git"
+  },
+  "lab": {
+    "commit": "dbbf836ad4b1025f14a2b3b504c43903f39e0b04",
+    "module": "blender_unified.engines.lab",
+    "url": "https://projects.blender.org/lab/blender_mcp.git"
+  },
+  "secure": {
+    "commit": "e388398fd8e4890e4039eec78a580166f90da4d1",
+    "module": "blender_unified.engines.secure",
+    "url": "https://github.com/soozs1/Blender-MCP.git"
+  }
+}

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "blender-unified"
+version = "0.2.1"
+description = "One consolidated MCP interface for Blender's community, Blend AI, Blender Lab, and secure servers"
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = ["mcp>=1.26,<2", "jsonschema>=4.23", "httpx>=0.27", "docutils", "pyyaml", "requests"]
+
+[project.scripts]
+blender-unified = "blender_unified.server:main"
+blender-unified-configure = "blender_unified.settings:main"
+blender-unified-host = "blender_unified.launch:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.25", "ruff>=0.15"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["src/blender_unified/engines", "src/blender_unified/bridges"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"licenses" = "blender_unified/licenses"
+"THIRD_PARTY.md" = "blender_unified/THIRD_PARTY.md"
