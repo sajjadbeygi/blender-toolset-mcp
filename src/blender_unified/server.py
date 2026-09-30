@@ -73,7 +73,7 @@ def create_server(gateway: Gateway):
             "Tools use semantic category names. Each call uses one explicitly configured implementation; "
             "use its schema. All engines must target the intended scene. Never assume separate engines share "
             "a Blender instance. After a timeout inspect scene state before retrying. "
-            "Upstream code execution has the privileges of Blender. Engine security properties differ."
+            "Component code execution has the privileges of Blender. Engine security properties differ."
         ),
     )
 

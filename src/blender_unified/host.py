@@ -37,7 +37,7 @@ def main():
     args = parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
     if bpy.app.background:
         raise RuntimeError(
-            "The community and secure bridges require Blender's GUI event loop; omit -b"
+            "The assets and authenticated bridges require Blender's GUI event loop; omit -b"
         )
     if hasattr(bpy.types.Scene, "blendermcp_port"):
         raise RuntimeError(
@@ -58,34 +58,36 @@ def main():
     os.environ["DISABLE_TELEMETRY"] = "true"
     cleanup = []
     try:
-        community = load("unified_community_addon", bridge_root / "community.py")
-        community.register()
-        cleanup.append(community.unregister)
+        assets = load("unified_assets_addon", bridge_root / "assets.py")
+        assets.register()
+        cleanup.append(assets.unregister)
         # Runtime preferences are needed by status, consent controls and Premium
         # configuration. They are not installed or saved to user preferences.
         preference_entry = bpy.context.preferences.addons.new()
-        preference_entry.module = community.__name__
+        preference_entry.module = assets.__name__
         preference_entry.preferences.telemetry_consent = False
         cleanup.append(lambda: bpy.context.preferences.addons.remove(preference_entry))
-        community._blendermcp_unregister_auto_start()
+        assets._blendermcp_unregister_auto_start()
         for scene in bpy.data.scenes:
             scene.blendermcp_auto_start_server = False
-            scene.blendermcp_port = ports["community"]
-        community_bridge = community.BlenderMCPServer(
-            host="127.0.0.1", port=ports["community"]
+            scene.blendermcp_port = ports["assets"]
+        assets_bridge = assets.BlenderMCPServer(
+            host="127.0.0.1", port=ports["assets"]
         )
-        community_bridge.start()
-        if not community_bridge.running:
-            raise RuntimeError("Community bridge did not start")
-        bpy.types.blendermcp_server = community_bridge
-        cleanup.append(community_bridge.stop)
+        assets_bridge.start()
+        if not assets_bridge.running:
+            raise RuntimeError("Assets bridge did not start")
+        bpy.types.blendermcp_server = assets_bridge
+        cleanup.append(assets_bridge.stop)
         bpy.context.scene.blendermcp_server_running = True
 
-        # This fork shares RNA class names with community. Reuse the common
+        # This fork shares RNA class names with assets. Reuse the common
         # properties and load only its separate authenticated socket server.
         # Its credentials come from BLENDERMCP_* environment variables.
-        secure = load(
-            "unified_secure_addon", bridge_root / "secure/__init__.py", package=True
+        authenticated = load(
+            "unified_authenticated_addon",
+            bridge_root / "authenticated/__init__.py",
+            package=True,
         )
         for name in ("blendermcp_custom_token", "blendermcp_active_token"):
             setattr(
@@ -100,29 +102,31 @@ def main():
             "blendermcp_restrict_execute_code",
         ):
             setattr(bpy.types.Scene, name, bpy.props.BoolProperty(default=False))
-        secure_bridge = secure.BlenderMCPServer(host="127.0.0.1", port=ports["secure"])
-        secure_bridge.start()
-        if not secure_bridge.running:
-            raise RuntimeError("Secure bridge did not start")
-        cleanup.append(secure_bridge.stop)
+        authenticated_bridge = authenticated.BlenderMCPServer(
+            host="127.0.0.1", port=ports["authenticated"]
+        )
+        authenticated_bridge.start()
+        if not authenticated_bridge.running:
+            raise RuntimeError("Authenticated bridge did not start")
+        cleanup.append(authenticated_bridge.stop)
 
-        blend_ai = load(
-            "unified_blend_ai_addon",
+        modeling = load(
+            "unified_modeling_addon",
             bridge_root / "modeling/__init__.py",
             package=True,
         )
-        blend_ai.register()
-        cleanup.append(blend_ai.unregister)
-        from unified_blend_ai_addon import server as blend_server
+        modeling.register()
+        cleanup.append(modeling.unregister)
+        from unified_modeling_addon import server as blend_server
 
-        blend_server.start_server(host="127.0.0.1", port=ports["blend_ai"])
+        blend_server.start_server(host="127.0.0.1", port=ports["modeling"])
         cleanup.append(blend_server.stop_server)
 
-        from blender_unified.bridges.lab import execute_interactive
-        from blender_unified.bridges.lab import mcp_to_blender_server as lab
+        from blender_unified.bridges.reference import execute_interactive
+        from blender_unified.bridges.reference import mcp_to_blender_server as reference
 
-        lab.start("127.0.0.1", ports["lab"])
-        cleanup.append(lab.stop)
+        reference.start("127.0.0.1", ports["reference"])
+        cleanup.append(reference.stop)
         bpy.app.timers.register(
             execute_interactive.run, first_interval=0.01, persistent=True
         )
@@ -142,7 +146,7 @@ def main():
         extra_args = ["--filter", args.audit_filter] if args.audit_filter else []
         smoke = subprocess.Popen(
             [
-                engine["blend_ai"]["command"],
+                engine["modeling"]["command"],
                 str(Path(__file__).with_name(script)),
                 "--config",
                 str(args.config.resolve()),

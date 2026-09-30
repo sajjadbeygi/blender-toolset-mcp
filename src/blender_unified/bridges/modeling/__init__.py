@@ -6,7 +6,7 @@ Blender's Python API.
 """
 
 bl_info = {
-    "name": "blend-ai",
+    "name": "Blender Toolset Modeling",
     "author": "blend-ai",
     "version": (1, 7, 0),
     "blender": (4, 2, 0),

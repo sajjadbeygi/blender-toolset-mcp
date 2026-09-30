@@ -1,113 +1,276 @@
-# Blender Unified MCP
+# Blender Toolset MCP
 
-A self-contained Python package combining four Blender MCP implementations into one public interface: **243 canonical Blender tools**, plus three discovery tools, preserving all **270 original tool registrations**.
+**Control Blender through one self-contained Model Context Protocol server.** Create and edit geometry, build materials, animate objects, configure physics, render images, inspect scenes, search Blender documentation, and work with asset services from an MCP-compatible client.
 
-All required server code, Blender bridges, and searchable documentation are included. There are no sibling repositories to clone, install, or retain. Overlapping operations share a canonical name; specialized operations retain distinct names. The Blender launcher runs the bridges against **one scene**.
+The Python distribution and executable are named **`blender-unified`**. All implementation modules, Blender bridges, and searchable documentation ship in this repository and its wheel.
 
-## Install and run
+- **243 distinct Blender tools**, organized by task.
+- **3 discovery tools** for finding operations and reading their exact schemas.
+- **270 implementation routes**, including alternatives for overlapping operations.
+- One public **stdio MCP endpoint** controlling a shared Blender scene.
+- Local scene operations work without provider accounts. External asset and generation services have their own requirements.
 
-Requires Python 3.11+ and a GUI installation of Blender. Tested with Blender 5.2.2 on macOS.
+[Installation](#installation) · [Client setup](#connect-your-mcp-client) · [Capabilities](#capabilities) · [Examples](#example-workflow) · [Configuration](#configuration) · [Testing](#testing-and-verification) · [Troubleshooting](#troubleshooting)
 
-From this source directory:
+## Requirements
+
+| Requirement | Details |
+| --- | --- |
+| Python | 3.11 or newer |
+| Blender | A GUI installation; live verification used **Blender 5.2.2 LTS on macOS** |
+| Package manager | `uv` recommended; installing a built wheel with `pip` is also supported |
+| MCP client | A client capable of launching a local stdio MCP server |
+| Network | Needed for initial dependency installation and external asset/generation services |
+
+Other operating systems and Blender versions have not received the same live audit. The combined host requires Blender's GUI event loop; do not launch it in background mode. Individual background inspection tools start separate Blender processes when needed.
+
+## Installation
+
+### 1. Get the project
 
 ```sh
+git clone https://github.com/sajjadbeygi/blender-toolset-mcp.git
+cd blender-toolset-mcp
 uv sync
+```
+
+### 2. Generate a local configuration
+
+```sh
 uv run blender-unified-configure --output local.json
+```
+
+This creates the settings for the MCP server and its Blender host. It records the Python interpreter's absolute path. Regenerate it if you move the checkout or replace the environment; preserve custom settings before regenerating.
+
+### 3. Start Blender
+
+```sh
 uv run blender-unified-host --config local.json
 ```
 
-The host launcher uses `blender` from PATH, or the standard macOS application path. Supply `--blender /path/to/blender` on other installations. It opens a new factory-startup window, registers the included bridges for that session, and does not install addons or save preferences. Wait for `BLENDER_UNIFIED_READY`. Close that window to stop the bridges.
-
-You can also install the built wheel into a Python environment with `pip install dist/blender_unified-0.2.1-py3-none-any.whl`, then use the same `blender-unified-configure` and `blender-unified-host` commands. The wheel includes all engine dependencies as package requirements, all bridge code, the local API/manual corpus, and attribution. Git and source checkouts are not needed.
-
-Do not use Blender's `-b` mode for the combined host: two bridges require the GUI event loop. Default ports are 9876 (modeling), 9877 (secure), 9878 (community), and 9879 (Lab), bound to loopback. To choose different ports:
+The launcher finds `blender` on PATH or uses the standard macOS application path. To choose an executable explicitly:
 
 ```sh
-uv run blender-unified-configure --output local.json --port-base 19876
+uv run blender-unified-host --config local.json --blender /path/to/blender
 ```
 
-The host reads the same config as the MCP server. Configuration generation writes the active Python interpreter's absolute path; regenerate it after moving the environment. If using an existing config, preserve any custom routes or environment settings before regenerating.
+The launcher opens a **new factory-startup Blender window**, registers the packaged bridges for that session, and prints `BLENDER_UNIFIED_READY` when they are ready. It does not install persistent addons or save Blender preferences. Close this window to stop the bridges.
 
-Configure your MCP client to run:
+Open your project in that window after startup, or use the file tools. Save work explicitly before closing Blender.
+
+### Install from a wheel
+
+Build from this checkout:
+
+```sh
+uv build
+python -m pip install dist/blender_unified-0.3.0-py3-none-any.whl
+blender-unified-configure --output local.json
+blender-unified-host --config local.json
+```
+
+The installed package includes the code, bridges, documentation corpus, and license notices. A Git checkout is not needed to run the installed wheel. This guide does not assume a PyPI release is available.
+
+## Connect your MCP client
+
+Keep the Blender host running, then configure your client to launch the MCP endpoint. On macOS or Linux, a typical configuration is:
 
 ```json
 {
   "mcpServers": {
     "blender-unified": {
-      "command": "/ABSOLUTE/PATH/blender-unified/.venv/bin/blender-unified",
-      "args": ["--config", "/ABSOLUTE/PATH/blender-unified/local.json"]
+      "command": "/ABSOLUTE/PATH/blender-toolset-mcp/.venv/bin/blender-unified",
+      "args": [
+        "--config",
+        "/ABSOLUTE/PATH/blender-toolset-mcp/local.json"
+      ]
     }
   }
 }
 ```
 
-The unified endpoint uses stdio. This example has not been written into any installed client's settings.
+Use your client's configuration format and real absolute paths. On Windows, the environment's executable is under `.venv/Scripts/`. Restart or reconnect the client after changing settings.
+
+The host and endpoint are separate processes: the host opens Blender; the endpoint exposes MCP over stdin/stdout. Both must read the same configuration. Client configuration is not installed automatically.
+
+### Check the connection
+
+Ask your client to call:
+
+```text
+system.status()
+scene.inspect()
+viewport.screenshot(max_size=800)
+```
+
+`system.status` confirms component discovery and tool counts. `scene.inspect` verifies an actual Blender connection, and the screenshot verifies that the intended scene is visible.
 
 ## Capabilities
 
-| Integrated engine | Original tools | Main capabilities |
-| --- | ---: | --- |
-| Modeling, from Blend AI | 186 | Modeling, transforms, animation, materials, nodes, physics, rigging, rendering, files, curves, sculpting, mesh repair, 3D printing |
-| Community MCP for Blender | 36 | Asset libraries, Rodin/Hunyuan/Tripo, bpy lookup, node descriptions, export, addon and telemetry controls |
-| Blender Lab | 26 | API/manual search, detailed file inspection, UI navigation, screenshots, rendering, background Blender execution |
-| Security-focused fork | 22 | Alternate implementations using its authenticated socket and integration request restrictions |
+| Area | Operations |
+| --- | --- |
+| Objects and transforms | Create, inspect, duplicate, delete, position, rotate, scale, parent, and organize objects |
+| Mesh modeling | Extrude, bevel, inset, subdivide, merge, project cuts, repair geometry, and perform booleans |
+| Materials | Create and assign materials, edit shader nodes, connect sockets, configure textures and color ramps |
+| Geometry nodes | Create node groups and modifiers, add nodes, connect sockets, and set inputs |
+| Curves and sweeps | Create curves, edit points and handles, and build swept geometry |
+| Animation and rigging | Insert and inspect keyframes, set interpolation, work with armatures, bones, poses, and constraints |
+| Physics and sculpting | Configure supported simulations, bake caches, select sculpt tools, and modify brush settings |
+| Cameras and lighting | Create and configure cameras and lights, and adjust scene illumination |
+| Rendering | Set engine, resolution and output options; render images, animations, thumbnails, and viewport captures |
+| Files and scenes | Save, open, import, export, inspect file contents, and identify missing resources |
+| Viewport and workspace | Capture screenshots, focus objects, and navigate workspaces and editors |
+| Documentation | Search bundled API/manual references and inspect Blender API and node definitions |
+| Assets | Search and import from Poly Haven, Sketchfab, and Poly Pizza |
+| Generated models | Submit, poll, and import supported Rodin, Hunyuan3D, and Tripo jobs |
+| Python | Execute Blender Python for operations that need direct API access |
 
-[Full inventory](inventory.json) includes original names, canonical names, schemas, and default implementations. The imported revisions are recorded in [upstreams.lock.json](upstreams.lock.json). Imported file paths and original hashes are recorded in the packaged `provenance.json`.
-
-“Superset” means every original tool has a callable route. It does not mean every operation has been tested end to end, that paid services become free, or that one engine's security controls protect another engine. The implementations still use isolated worker processes and distinct internal bridge protocols. They are modules of this one distribution, not dependencies on separate Blender MCP packages.
-
-## Interface
+Find the exact operations at runtime instead of guessing parameters:
 
 ```text
 system.find_tools(query="keyframe")
+system.find_tools(query="material")
 system.describe_tool(name="object.inspect")
+```
+
+The [full inventory](inventory.json) contains all tool names, implementation choices, and input/output schemas. Availability of an operation does not imply that every parameter combination, extension, provider, or Blender version has been verified.
+
+## Example workflow
+
+These are MCP calls to make through your client, rather than shell commands:
+
+```text
 object.create_object(type="CUBE", name="Example", location=[0, 0, 1])
-object.inspect(object_name="Example")
 transform.set_location(object_name="Example", location=[1, 2, 3])
+object.inspect(object_name="Example")
 viewport.screenshot(max_size=800)
-docs.search_api(query="bpy.types.Object", max_results=5)
+file.save_file(filepath="/ABSOLUTE/PATH/example.blend")
 ```
 
-Overlapping tools accept an optional `implementation` selector:
+A direct API operation can use the Python tool:
 
 ```text
-object.inspect(object_name="Example", implementation="secure")
-code.execute(code="import bpy\nresult = {'objects': len(bpy.data.objects)}", implementation="lab")
+code.execute(
+  code="import bpy\nresult = {'objects': len(bpy.data.objects)}",
+  implementation="reference"
+)
 ```
 
-The default priority is `blend_ai`, `secure`, `lab`, `community`. These identifiers remain stable for existing callers. Override specific tools in the config's `routes`, for example `"object.inspect": "secure"`. Invalid or unavailable routes fail startup.
+Example requests for an assistant:
 
-Parameter and return conventions can differ across implementations. The public JSON Schema describes each branch; `system.describe_tool` returns its original schema and description. Images, structured results, error flags, progress, and tool-time elicitation are preserved. Modeling screenshots are additionally exposed as native MCP image blocks while retaining their structured output.
+- “Create a simple studio scene with a cube, a floor, a camera, and area lighting.”
+- “Inspect this mesh, find its modifiers, and show me a viewport screenshot.”
+- “Add location keyframes and switch their interpolation to linear.”
+- “Find a wood texture on Poly Haven and apply it to the selected object.”
 
-Resources and resource templates use `blender-unified://resource/...` URIs. The full catalog is available at `blender-unified://inventory`. Prompts use `workflow.*` names and carry source-to-canonical name mappings. Sampling, resource subscriptions, and dynamic list-change notifications are not implemented; restart if a catalog changes.
+For multi-step changes, inspect the current scene first, verify the result, and save explicitly.
 
-## Integrations and behavior
+## Configuration
 
-Enable external integrations through Blender's community sidebar checkboxes. Provider credentials, subscriptions, Premium eligibility, quotas, and network access remain necessary. The secure bridge reads credentials from its documented `BLENDERMCP_*` environment variables in the **Blender process**; its conflicting preferences panel is not registered. Shared integration toggles and temporary community preferences are available in the combined host.
+The package contains four capability components. They run as isolated workers and connect to bridges in the same Blender process.
 
-The gateway adds no telemetry. Included community defaults disable collection and prevent creation of a persistent tracking ID. The host creates temporary preferences with consent off and auto-saving disabled. The secure client's token cache is stored under `.runtime/tokens` beside the config. External asset requests still contact their providers when explicitly used.
+| Component identifier | Purpose | Default port |
+| --- | --- | ---: |
+| `modeling` | Scene editing, modeling, materials, animation, physics, rendering | 9876 |
+| `authenticated` | Authenticated socket route and selected asset operations | 9877 |
+| `assets` | Provider integrations, generation, API inspection, export, and integration controls | 9878 |
+| `reference` | Documentation, detailed inspection, UI navigation, and background execution | 9879 |
 
-Security policies remain engine-specific. Other bridges do not inherit the secure engine's authentication or egress restrictions. Python execution runs with Blender's privileges; this package is not a sandbox.
+All default bridge sockets bind to loopback. Choose another block of four ports when running multiple instances:
 
-The gateway serializes operations across engines and does not retry or switch engines after a failure. Existing engine retry behavior is unchanged. A timeout can occur after a mutation; inspect the scene before retrying. `system.status` reports engine discovery, not proof of Blender connectivity or provider availability.
+```sh
+uv run blender-unified-configure --output local.json --port-base 19876
+```
 
-## Package layout
+The default selection order is `modeling`, `authenticated`, `reference`, then `assets`. An operation with multiple implementations accepts an optional selector:
 
 ```text
-src/blender_unified/
-  server.py, gateway.py, catalog.py   unified MCP interface
-  engine.py, settings.py, launch.py  worker/config/host entry points
-  host.py, smoke.py                  packaged Blender host and live test
-  engines/                          integrated server implementations
-    modeling/, community/, secure/, lab/
-  bridges/                          included Blender-side code
-    modeling/, community.py, secure/, lab/
-  provenance.json                   origins and original file hashes
+object.inspect(object_name="Example", implementation="authenticated")
 ```
 
-The community bridge has one copy; addon lookup resolves it inside the package. Server imports and enum discovery use the integrated namespaces. The secure bridge uses a relative egress import. The local documentation corpus accounts for most of the package size. Repository histories, standalone chat clients, upstream test trees, caches, and duplicate addon copies were omitted.
+To override the default for one operation, edit the generated configuration's `routes` object:
 
-## Verification
+```json
+{
+  "routes": {
+    "object.inspect": "authenticated"
+  }
+}
+```
+
+This is a configuration fragment, not a replacement for the complete generated file. Keep its `engines` and `priority` settings. Invalid routes fail at startup.
+
+Different implementations can have different parameter and return shapes. Use `system.describe_tool` to inspect the selected branch. Calls are serialized across components. The gateway does not retry mutations or automatically switch implementations after a failure; implementation-specific retry behavior may still apply. Inspect the scene after a timeout before repeating a mutation.
+
+### Blender executable for background tools
+
+The background inspection and execution tools use `BLENDER_PATH`, falling back to `blender` on PATH. Set it in the MCP server's environment, for example in a client's `env` configuration:
+
+```json
+{
+  "env": {
+    "BLENDER_PATH": "/Applications/Blender.app/Contents/MacOS/Blender"
+  }
+}
+```
+
+Selecting the host with `--blender` does not set this separate worker environment variable.
+
+### Updating an existing installation
+
+Version 0.3 uses capability-based component identifiers. Regenerate configurations created before 0.3, reapply custom ports/environment settings/routes, and restart both host and endpoint. Update explicit implementation selectors to the identifiers in the table above. Catalog metadata uses `implementation_routes` and `tool_name`.
+
+## External services
+
+| Integration | Requirements and verification limits |
+| --- | --- |
+| Poly Haven | Enable its integration in the Blender sidebar; public API search, previews, and 1K texture downloads have been exercised |
+| Sketchfab | Enable the integration and configure provider credentials; authenticated download paths were not part of the completed live audit |
+| Poly Pizza | Enable the integration and provide its API key; account-dependent calls remain unverified |
+| Rodin / Hunyuan3D / Tripo | Appropriate provider credentials, account access, and an actual job; costs, quotas, and availability depend on the provider |
+| 3D Print Toolbox | Requires the corresponding Blender extension; absent from the audited factory installation |
+
+The asset component exposes integration controls in Blender's sidebar. Some authenticated routes read `BLENDERMCP_*` credential variables from the **Blender process**. Configuration of one route does not automatically configure every alternative route. Check a provider's status tool before calling it, and inspect the tool description for its prerequisites.
+
+No paid generation jobs were submitted during verification. A disabled integration or missing credential is not a successful end-to-end provider test.
+
+## Data, execution, and privacy
+
+- Blender Python executes with the privileges of the Blender process. This package is not a sandbox.
+- Security checks differ between components; authentication on one bridge does not protect the others.
+- Telemetry collection defaults to disabled, with temporary Blender consent preferences off. The gateway adds no telemetry.
+- Feedback persistence requires telemetry consent and is not verified with the default opt-out configuration.
+- Runtime state and pairing tokens live under `.runtime/` beside the configuration and are excluded from Git.
+- Provider tools contact external services when called. Local modeling and bundled documentation searches do not require provider accounts.
+- Generated settings, credentials, virtual environments, caches, and built distributions are excluded from the repository.
+
+## MCP behavior
+
+Images and structured results are preserved. Viewport captures can return native MCP image blocks. The endpoint also exposes resources, templates, and prompts:
+
+| Interface | Naming |
+| --- | --- |
+| Inventory resource | `blender-unified://inventory` |
+| Component resources | `blender-unified://resource/...` |
+| Workflow prompts | `workflow.*` |
+
+Tool-time elicitation and progress forwarding are supported. Sampling, resource subscriptions, and dynamic catalog-change notifications are not implemented. Restart after changing the catalog.
+
+## Testing and verification
+
+The recorded [live audit](tool-audit.json) covers 270 implementation routes on Blender 5.2.2 LTS:
+
+| Result | Routes |
+| --- | ---: |
+| Passed positive-path live calls | 243 |
+| Blocked by prerequisites | 27 |
+| Failed | 0 |
+
+The three discovery tools also passed. Of the live passes, **86 include independent scene or output-file assertions**; **157 verify valid responses**. The 27 blocked routes comprise 25 credential/job-dependent provider operations, the 3D Print Toolbox operation, and feedback persistence. These counts are implementation routes, not distinct public tools.
+
+The report records its test date and environment. It is evidence for those cases, not a guarantee for every operation mode or future provider API. Blender 5.2 annotation points do not support pressure; the stroke tool reports `pressure_supported: false`.
+
+### Python checks
 
 ```sh
 uv run pytest -q
@@ -115,38 +278,88 @@ uv run ruff check src scripts tests
 uv run blender-unified --config local.json --inventory
 ```
 
-Tests exercise real stdio MCP subprocesses, routing and schema validation, images and structured results, binary resources, pagination, templates, prompts, elicitation, error handling, and operation serialization. The integration test starts every included engine and compares all 270 input/output schemas with the original inventory.
+Tests cover real MCP subprocesses, schema preservation, routing, output formats, resource and prompt handling, pagination, elicitation, error detection, and serialized execution.
 
-Run live Blender checks in a disposable factory scene, using unused ports:
+### Live smoke test
 
 ```sh
 uv run blender-unified-configure --output smoke-config.json --port-base 20876
 uv run blender-unified-host --config smoke-config.json --smoke-report blender-smoke.json
 ```
 
-The smoke test creates an object through the modeling engine, inspects it through all four engines, changes its transform, verifies it through Lab, exercises docs and telemetry opt-out, captures a viewport image, reads a resource and prompt, and deletes the object. The test window closes automatically. [Results](blender-smoke.json) record the checks. Paid generation, asset downloads, and every specialized modeling operation are not covered.
+This uses a disposable factory scene to exercise all four components, inspect and mutate an object, search documentation, capture a viewport image, read a resource and prompt, and clean up. The window closes automatically.
 
-## Full live audit
-
-The [per-tool report](tool-audit.json) covers all **270 implementation routes** on Blender 5.2.2 LTS: **243 passed, 27 blocked, zero failed**, plus all three gateway discovery tools passed. Counts refer to implementation routes, not the 243 distinct public Blender tools. Each available route received a positive-path call through the public MCP endpoint in a disposable scene. The report distinguishes independent Blender/file assertions from response-only checks. It does not establish every parameter combination or compatibility with other Blender versions.
-
-The 27 blocked routes comprise 25 credential/job-dependent provider operations, 3D Print Toolbox (extension absent), and feedback persistence (telemetry consent remains off). Poly Haven category/search/preview, actual 1K texture downloads, and cached-texture application were exercised. No paid generation jobs were submitted.
-
-The audit found and fixed Blender compatibility defects in animation, baking, curves, annotations, materials, boolean slicing, knife projection, recent-file lookup, export format selection, geometry nodes, and rendering, plus a stale secure Poly Haven status check. Eight direct Blender regression tests and 18 Python tests pass. Blender 5.2 annotation points no longer support pressure; the stroke tool reports this explicitly with `pressure_supported: false`.
+### Full live audit
 
 ```sh
 uv run blender-unified-configure --output audit-config.json --port-base 24876
 BLENDER_PATH=/Applications/Blender.app/Contents/MacOS/Blender uv run blender-unified-host --config audit-config.json --audit-report tool-audit.json
 ```
 
-Set `BLENDER_PATH` to your Blender executable so Lab's background tools can launch it. Use `--blender` as well if the host executable is elsewhere. The audit resets its own factory scene between cases, writes fixtures under `.runtime/tool-audit`, downloads public Poly Haven assets, and closes its test window. For a targeted rerun use `--audit-filter tool_name,another_tool` with a different report filename to preserve the complete report.
+Adjust the executable path for your installation. The audit resets its factory scene between cases, writes fixtures under `.runtime/tool-audit`, downloads public Poly Haven assets, and closes its window. It leaves provider jobs requiring credentials or payment unsubmitted.
 
-Direct Blender regressions:
+For a targeted rerun, use a separate output file:
+
+```sh
+uv run blender-unified-host --config audit-config.json --audit-report targeted-audit.json --audit-filter add_geometry_node,list_keyframes
+```
+
+Direct Blender regression tests:
 
 ```sh
 /path/to/blender --background --factory-startup --python-exit-code 1 --python tests/blender_regressions.py
 ```
 
-## Attribution
+Before publishing audit artifacts, remove local paths and other environment-specific information. The checked-in report has machine-specific paths redacted.
 
-New gateway code is AGPL-3.0-or-later. Incorporated components retain their original notices and applicable licenses. The Blender Manual retains its separate CC-BY-SA attribution. See [THIRD_PARTY.md](THIRD_PARTY.md), `licenses/`, and the packaged provenance manifest. Repository: [sajjadbeygi/blender-toolset-mcp](https://github.com/sajjadbeygi/blender-toolset-mcp).
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Client discovers tools but scene calls fail | Start the Blender host and wait for `BLENDER_UNIFIED_READY`; ensure both processes use the same config |
+| Address already in use | Close the previous test host or generate settings with another `--port-base` |
+| Blender executable not found | Set `--blender` for the host and `BLENDER_PATH` for background worker tools |
+| Configuration fails after moving the project | Regenerate it so its interpreter path is correct |
+| Old configuration rejected after upgrading | Regenerate for 0.3 and update component selectors/routes |
+| Unknown command or integration disabled | Enable the relevant Blender integration and check its status tool |
+| Provider rejects a request | Check credentials, account permissions, quotas, job IDs, and the chosen implementation's schema |
+| Viewport operation fails | Use the GUI host and open a 3D Viewport; operators can require a particular mode or selection |
+| A call times out | Inspect the current scene before retrying; a mutation may already have happened |
+| Only the printability check is unavailable | Install and enable the required 3D Print Toolbox extension |
+
+When reporting a bug, include the package and Blender versions, operating system, canonical tool name, selected implementation, minimal arguments, and relevant error text. Remove credentials and private scene data.
+
+## Repository layout
+
+```text
+src/blender_unified/
+  server.py, gateway.py, catalog.py   Public MCP endpoint and routing
+  engine.py, config.py, settings.py  Component startup and configuration
+  host.py, launch.py                Blender host lifecycle
+  audit.py, audit_cases.py, smoke.py Live verification
+  engines/                          Included capability implementations
+    modeling/, assets/, authenticated/, reference/
+  bridges/                          Blender-side implementations
+  names.json                        Canonical tool-name mapping
+  provenance.json                   Source and modification records
+scripts/                            Maintenance and compatibility entry points
+tests/                              Protocol and Blender regression tests
+licenses/                           License texts and source records
+inventory.json                      Complete tool schema snapshot
+tool-audit.json                     Recorded per-route verification
+```
+
+## Development
+
+```sh
+uv sync
+uv run pytest -q
+uv run ruff check src scripts tests
+uv build
+```
+
+After changing tool definitions, regenerate name mappings with `uv run python scripts/refresh_catalog.py`, inspect the inventory, and run the affected live tests. Keep schemas and recorded inventory consistent. Do not count unavailable provider flows as passing tests.
+
+## License and notices
+
+The package is distributed under [AGPL-3.0-or-later](LICENSE). Incorporated code and documentation retain their applicable licenses and attribution in [THIRD_PARTY.md](THIRD_PARTY.md), [licenses/](licenses/), and the provenance manifest. These records are retained independently of product branding. They do not represent separately installed runtime packages.

@@ -21,7 +21,7 @@ class EngineConfig:
 class Config:
     engines: list[EngineConfig]
     priority: list[str] = field(
-        default_factory=lambda: ["blend_ai", "secure", "lab", "community"]
+        default_factory=lambda: ["modeling", "authenticated", "reference", "assets"]
     )
     routes: dict[str, str] = field(default_factory=dict)
 

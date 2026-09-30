@@ -37,8 +37,8 @@ async def run(args):
                     "object.create_object",
                     {"type": "CUBE", "name": "UnifiedSmokeCube", "location": [1, 2, 3]},
                 )
-                checks.append("create object via Blend AI")
-                for engine in ("blend_ai", "community", "secure"):
+                checks.append("create object via modeling component")
+                for engine in ("modeling", "assets", "authenticated"):
                     _, text = await call(
                         "object.inspect",
                         {"object_name": "UnifiedSmokeCube", "implementation": engine},
@@ -47,7 +47,7 @@ async def run(args):
                     checks.append(f"same object inspected via {engine}")
                 _, text = await call("scene.hierarchy", {})
                 assert "UnifiedSmokeCube" in text, text
-                checks.append("same scene inspected via Blender Lab")
+                checks.append("same scene inspected via reference component")
                 await call(
                     "transform.set_location",
                     {"object_name": "UnifiedSmokeCube", "location": [4, 5, 6]},
@@ -55,25 +55,25 @@ async def run(args):
                 _, text = await call(
                     "code.execute",
                     {
-                        "implementation": "lab",
+                        "implementation": "reference",
                         "code": "import bpy\nresult = {'location': list(bpy.data.objects['UnifiedSmokeCube'].location)}",
                     },
                 )
                 assert "4.0" in text and "6.0" in text, text
-                checks.append("transform via Blend AI verified via Lab code execution")
+                checks.append("transform via modeling component verified via reference code execution")
                 _, text = await call("docs.lookup_api", {"query": "bpy.types.Object"})
                 assert "Object" in text, text
-                checks.append("live bpy lookup via community")
+                checks.append("live bpy lookup via assets")
                 _, text = await call("privacy.disable_telemetry", {})
                 assert "OFF" in text, text[:200]
-                checks.append("community telemetry opt-out control")
+                checks.append("assets telemetry opt-out control")
                 _, text = await call(
                     "docs.search_api", {"query": "bpy.types.Object", "max_results": 2}
                 )
                 assert text, text
-                checks.append("bundled API documentation search via Lab")
+                checks.append("bundled API documentation search via reference")
                 screenshot, _ = await call(
-                    "viewport.screenshot", {"implementation": "blend_ai"}
+                    "viewport.screenshot", {"implementation": "modeling"}
                 )
                 assert any(c.type == "image" for c in screenshot.content), [
                     c.type for c in screenshot.content
@@ -83,7 +83,7 @@ async def run(args):
                 scene_uri = next(
                     r.uri
                     for r in resources
-                    if "blend_ai" in str(r.uri) and "scene" in str(r.uri)
+                    if "modeling" in str(r.uri) and "scene" in str(r.uri)
                 )
                 scene = await client.read_resource(scene_uri)
                 assert "UnifiedSmokeCube" in scene.contents[0].text
@@ -91,7 +91,7 @@ async def run(args):
                 prompts = (await client.list_prompts()).prompts
                 assert prompts
                 assert (await client.get_prompt(prompts[0].name)).messages
-                checks.append("upstream workflow prompt")
+                checks.append("component workflow prompt")
                 await call("object.delete_object", {"object_name": "UnifiedSmokeCube"})
                 checks.append("temporary object deleted")
         args.report.write_text(

@@ -28,7 +28,7 @@ async def pages(fetch, field):
         if cursor is None:
             return result
         if cursor in seen:
-            raise ValueError("Upstream returned a repeated pagination cursor")
+            raise ValueError("Component returned a repeated pagination cursor")
         seen.add(cursor)
 
 
@@ -178,9 +178,9 @@ class Gateway:
         return {
             "engines": self.health,
             "canonical_tools": len(self.catalog.actions),
-            "upstream_tools": sum(len(v) for v in self.catalog.actions.values()),
+            "implementation_routes": sum(len(v) for v in self.catalog.actions.values()),
             "blender_verified": False,
-            "note": "MCP engine discovery is not a Blender or external-service health check. The gateway does not retry calls; upstream retry behavior is unchanged.",
+            "note": "MCP engine discovery is not a Blender or external-service health check. The gateway does not retry calls; component retry behavior is unchanged.",
         }
 
     def rewrite_content(self, engine, content):
@@ -220,7 +220,7 @@ class Gateway:
         content = self.rewrite_content(variant.engine, result.content)
         if (
             name == "viewport.screenshot"
-            and variant.engine == "blend_ai"
+            and variant.engine == "modeling"
             and not result.isError
         ):
             # Blend AI returns image bytes in JSON. Expose an MCP image block

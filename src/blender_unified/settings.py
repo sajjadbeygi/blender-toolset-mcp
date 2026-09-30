@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-ENGINE_PORTS = {"blend_ai": 0, "secure": 1, "community": 2, "lab": 3}
+ENGINE_PORTS = {"modeling": 0, "authenticated": 1, "assets": 2, "reference": 3}
 
 
 def write_config(path: Path, port_base: int = 9876):
@@ -37,7 +37,7 @@ def write_config(path: Path, port_base: int = 9876):
         json.dumps(
             {
                 "engines": engines,
-                "priority": ["blend_ai", "secure", "lab", "community"],
+                "priority": ["modeling", "authenticated", "reference", "assets"],
                 "routes": {},
             },
             indent=2,

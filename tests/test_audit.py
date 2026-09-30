@@ -12,7 +12,7 @@ from blender_unified.audit import problem
         {"result": {"success": False}},
     ],
 )
-def test_nested_upstream_errors_do_not_pass_audit(payload):
+def test_nested_component_errors_do_not_pass_audit(payload):
     result = CallToolResult(content=[], structuredContent=payload)
     assert problem(result)
 

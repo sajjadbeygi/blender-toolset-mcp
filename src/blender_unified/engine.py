@@ -6,10 +6,10 @@ import os
 import sys
 
 ENGINE_MODULES = {
-    "blend_ai": "blender_unified.engines.modeling.server",
-    "community": "blender_unified.engines.community.server",
-    "secure": "blender_unified.engines.secure.server",
-    "lab": "blender_unified.engines.lab",
+    "modeling": "blender_unified.engines.modeling.server",
+    "assets": "blender_unified.engines.assets.server",
+    "authenticated": "blender_unified.engines.authenticated.server",
+    "reference": "blender_unified.engines.reference",
 }
 
 
@@ -33,7 +33,7 @@ def main():
     )
     sys.argv = [sys.argv[0]]
     server = importlib.import_module(ENGINE_MODULES[args.kind])
-    if args.kind == "blend_ai":
+    if args.kind == "modeling":
         from .engines.modeling.connection import BlenderConnection
 
         server._connection = BlenderConnection(host="127.0.0.1", port=args.port)

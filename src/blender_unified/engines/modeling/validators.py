@@ -1,4 +1,4 @@
-"""Input validation and security utilities for blend-ai."""
+"""Input validation and security utilities for Blender Toolset Modeling."""
 
 import math
 import re

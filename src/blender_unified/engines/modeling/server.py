@@ -1,4 +1,4 @@
-"""MCP Server entry point for blend-ai."""
+"""MCP Server entry point for Blender Toolset Modeling."""
 
 from mcp.server.fastmcp import FastMCP
 
@@ -6,7 +6,7 @@ from blender_unified.engines.modeling.connection import BlenderConnection
 
 # Create the MCP server
 mcp = FastMCP(
-    "blend-ai",
+    "Blender Toolset Modeling",
     instructions="The most intuitive and efficient MCP Server for Blender",
 )
 

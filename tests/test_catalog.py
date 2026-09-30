@@ -16,15 +16,15 @@ def tool(name="get_scene_info", schema=None):
     )
 
 
-def test_consolidation_preserves_all_pinned_upstream_tools():
+def test_consolidation_preserves_all_pinned_implementation_routes():
     inventory = json.loads((Path(__file__).parents[1] / "inventory.json").read_text())
-    catalog = Catalog(["blend_ai", "secure", "lab", "community"], {})
+    catalog = Catalog(["modeling", "authenticated", "reference", "assets"], {})
     count = 0
     for action in inventory["tools"]:
         for variant in action["implementations"]:
             catalog.add(
                 variant["engine"],
-                tool(variant["upstream_tool"], variant["inputSchema"]),
+                tool(variant["tool_name"], variant["inputSchema"]),
             )
             count += 1
     assert count == 270
@@ -35,8 +35,8 @@ def test_consolidation_preserves_all_pinned_upstream_tools():
 
 
 def test_explicit_variants_keep_different_required_arguments_and_defs():
-    catalog = Catalog(["blend_ai", "secure"], {})
-    catalog.add("blend_ai", tool())
+    catalog = Catalog(["modeling", "authenticated"], {})
+    catalog.add("modeling", tool())
     nested = {
         "type": "object",
         "properties": {"value": {"$ref": "#/$defs/Point"}},
@@ -44,29 +44,29 @@ def test_explicit_variants_keep_different_required_arguments_and_defs():
         "required": ["value"],
         "additionalProperties": False,
     }
-    catalog.add("secure", tool(schema=nested))
+    catalog.add("authenticated", tool(schema=nested))
     schema = catalog.definition("scene.inspect").inputSchema
     validate = Draft202012Validator(schema).validate
     validate({})
-    validate({"implementation": "secure", "value": 2})
+    validate({"implementation": "authenticated", "value": 2})
     for invalid in [
         {"value": 2},
-        {"implementation": "secure"},
-        {"implementation": "secure", "value": 0},
+        {"implementation": "authenticated"},
+        {"implementation": "authenticated", "value": 0},
         {"implementation": "absent"},
     ]:
         with pytest.raises(ValidationError):
             validate(invalid)
     selected, params = catalog.resolve(
-        "scene.inspect", {"implementation": "secure", "value": 3}
+        "scene.inspect", {"implementation": "authenticated", "value": 3}
     )
-    assert selected.engine == "secure"
+    assert selected.engine == "authenticated"
     assert params == {"value": 3}
     assert "implementation" not in nested["properties"]
 
 
 def test_routes_and_annotations_are_conservative():
-    catalog = Catalog(["blend_ai", "secure"], {"scene.inspect": "secure"})
+    catalog = Catalog(["modeling", "authenticated"], {"scene.inspect": "authenticated"})
     readonly = tool().model_copy(
         update={
             "annotations": types.ToolAnnotations(
@@ -74,14 +74,14 @@ def test_routes_and_annotations_are_conservative():
             )
         }
     )
-    catalog.add("blend_ai", readonly)
-    catalog.add("secure", tool())
+    catalog.add("modeling", readonly)
+    catalog.add("authenticated", tool())
     catalog.validate_routes()
-    assert catalog.resolve("scene.inspect", {})[0].engine == "secure"
+    assert catalog.resolve("scene.inspect", {})[0].engine == "authenticated"
     assert catalog.definition("scene.inspect").annotations.readOnlyHint is False
     assert catalog.definition("scene.inspect").annotations.destructiveHint is True
     with pytest.raises(ValueError):
-        catalog.add("secure", tool())
-    catalog.routes["missing"] = "secure"
+        catalog.add("authenticated", tool())
+    catalog.routes["missing"] = "authenticated"
     with pytest.raises(ValueError):
         catalog.validate_routes()

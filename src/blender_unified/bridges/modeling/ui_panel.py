@@ -7,11 +7,11 @@ from . import server as addon_server
 
 class BLENDAI_PT_MainPanel(bpy.types.Panel):
     """blend-ai MCP Server Control Panel"""
-    bl_label = "blend-ai"
+    bl_label = "Blender Toolset Modeling"
     bl_idname = "BLENDAI_PT_main_panel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "blend-ai"
+    bl_category = "Blender Toolset"
 
     def draw(self, context):
         layout = self.layout
@@ -30,7 +30,7 @@ class BLENDAI_PT_MainPanel(bpy.types.Panel):
 class BLENDAI_OT_StartServer(bpy.types.Operator):
     """Start the blend-ai MCP server"""
     bl_idname = "blendai.start_server"
-    bl_label = "Start blend-ai Server"
+    bl_label = "Start Modeling Server"
 
     def execute(self, context):
         port = context.scene.blendai_port
@@ -42,7 +42,7 @@ class BLENDAI_OT_StartServer(bpy.types.Operator):
 class BLENDAI_OT_StopServer(bpy.types.Operator):
     """Stop the blend-ai MCP server"""
     bl_idname = "blendai.stop_server"
-    bl_label = "Stop blend-ai Server"
+    bl_label = "Stop Modeling Server"
 
     def execute(self, context):
         addon_server.stop_server()

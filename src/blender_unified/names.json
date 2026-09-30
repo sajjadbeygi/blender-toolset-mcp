@@ -1,5 +1,5 @@
 {
-  "blend_ai": {
+  "modeling": {
     "add_annotation_layer": "annotation.add_annotation_layer",
     "add_annotation_stroke": "annotation.add_annotation_stroke",
     "add_bone": "armature.add_bone",
@@ -187,7 +187,7 @@
     "tris_to_quads": "mesh.tris_to_quads",
     "uv_unwrap": "uv.uv_unwrap"
   },
-  "community": {
+  "assets": {
     "bpy_api_lookup": "docs.lookup_api",
     "describe_node_type": "docs.describe_node",
     "disable_telemetry": "privacy.disable_telemetry",
@@ -225,7 +225,7 @@
     "search_sketchfab_models": "assets.sketchfab.search",
     "set_texture": "assets.polyhaven.set_texture"
   },
-  "lab": {
+  "reference": {
     "execute_blender_code": "code.execute",
     "execute_blender_code_for_cli": "code.execute_cli",
     "get_blendfile_summary_datablocks": "file.inspect_datablocks",
@@ -253,7 +253,7 @@
     "search_api_docs": "docs.search_api",
     "search_manual_docs": "docs.search_manual"
   },
-  "secure": {
+  "authenticated": {
     "download_polyhaven_asset": "assets.polyhaven.download",
     "download_sketchfab_model": "assets.sketchfab.download",
     "execute_blender_code": "code.execute",

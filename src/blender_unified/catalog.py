@@ -1,4 +1,4 @@
-"""A deterministic, lossless mapping from upstream tools to semantic actions."""
+"""A deterministic, lossless mapping from component tools to semantic actions."""
 
 import json
 import re
@@ -17,7 +17,7 @@ def canonical_name(engine: str, name: str) -> str:
 
 
 def relocate_refs(value, prefix):
-    """Nested upstream schemas keep their own local $defs references."""
+    """Nested component schemas keep their own local $defs references."""
     if isinstance(value, dict):
         return {
             k: prefix + v[1:]
@@ -43,6 +43,14 @@ class Catalog:
         self.actions: dict[str, list[Variant]] = {}
 
     def add(self, engine: str, tool: types.Tool):
+        # Present one product identity while leaving source notices untouched.
+        tool = tool.model_copy(deep=True)
+        if tool.description:
+            tool.description = re.sub(
+                r"\b(?:blend-ai|Blend AI|Blender Lab|MCP for Blender|BlenderMCP|Blender-MCP|blender-mcp)\b",
+                "Blender Toolset",
+                tool.description,
+            )
         name = canonical_name(engine, tool.name)
         if not re.fullmatch(r"[a-zA-Z0-9_.-]{1,128}", name) or name.startswith(
             "system."
@@ -92,7 +100,7 @@ class Catalog:
                 schema.setdefault("required", []).append("implementation")
             branches.append(relocate_refs(schema, f"#/anyOf/{index}"))
         # Do not assert a universal output schema across different implementations.
-        # The selected upstream SDK validates its own structured result.
+        # The selected component SDK validates its own structured result.
         description = primary.tool.description or name
         description += "\n\nDefault implementation: " + primary.engine + "."
         if len(variants) > 1:
@@ -149,7 +157,7 @@ class Catalog:
                 "implementations": [
                     {
                         "engine": v.engine,
-                        "upstream_tool": v.tool.name,
+                        "tool_name": v.tool.name,
                         "inputSchema": v.tool.inputSchema,
                         "outputSchema": v.tool.outputSchema,
                         "description": v.tool.description,

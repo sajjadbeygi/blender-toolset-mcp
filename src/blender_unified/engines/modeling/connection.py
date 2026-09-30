@@ -52,7 +52,7 @@ class BlenderConnection:
         except (ConnectionRefusedError, OSError) as e:
             raise BlenderConnectionError(
                 f"Cannot connect to Blender at {self._host}:{self._port}. "
-                "Ensure Blender is running with the blend-ai addon enabled."
+                "Start the Blender Toolset host using blender-unified-host --config local.json."
             ) from e
 
     def disconnect(self) -> None:

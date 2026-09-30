@@ -21,7 +21,7 @@ async def test_complete_stdio_protocol_roundtrip(tmp_path):
             {
                 "engines": [
                     {
-                        "name": "blend_ai",
+                        "name": "modeling",
                         "command": sys.executable,
                         "args": [str(FIXTURE)],
                     }
@@ -43,7 +43,7 @@ async def test_complete_stdio_protocol_roundtrip(tmp_path):
                 "system.find_tools",
                 "system.describe_tool",
                 "scene.inspect",
-                "extension.blend_ai.failure",
+                "extension.modeling.failure",
             }
             result = await client.call_tool("scene.inspect", {})
             assert not result.isError
@@ -51,19 +51,19 @@ async def test_complete_stdio_protocol_roundtrip(tmp_path):
             assert result.meta == {"fixture": True}
             assert result.content[1].data == "aGVsbG8="
             assert str(result.content[2].uri) == public_uri(
-                "blend_ai", "blender://scene"
+                "modeling", "blender://scene"
             )
             assert (await client.call_tool("scene.inspect", {"wrong": 1})).isError
-            assert (await client.call_tool("extension.blend_ai.failure", {})).isError
+            assert (await client.call_tool("extension.modeling.failure", {})).isError
             status = await client.call_tool("system.status", {})
-            assert status.structuredContent["upstream_tools"] == 2
+            assert status.structuredContent["implementation_routes"] == 2
             found = await client.call_tool("system.find_tools", {"query": "scene"})
             assert found.structuredContent["tools"][0]["name"] == "scene.inspect"
             desc = await client.call_tool(
                 "system.describe_tool", {"name": "scene.inspect"}
             )
             assert (
-                desc.structuredContent["implementations"][0]["upstream_tool"]
+                desc.structuredContent["implementations"][0]["tool_name"]
                 == "get_scene_info"
             )
             resources = (await client.list_resources()).resources
@@ -81,7 +81,7 @@ async def test_complete_stdio_protocol_roundtrip(tmp_path):
             assert "scene.inspect" in prompt.messages[0].content.text
             assert prompt.messages[1].content.text == "Use get_scene_info"
             inventory = await client.read_resource("blender-unified://inventory")
-            assert json.loads(inventory.contents[0].text)["upstream_tools"] == 2
+            assert json.loads(inventory.contents[0].text)["implementation_routes"] == 2
 
 
 async def test_repeated_pagination_cursor_is_rejected():
@@ -93,7 +93,7 @@ async def test_repeated_pagination_cursor_is_rejected():
 
 
 async def test_failed_mutation_never_retries_or_falls_back():
-    gateway = Gateway(Config([], ["blend_ai", "secure"]))
+    gateway = Gateway(Config([], ["modeling", "authenticated"]))
     calls = []
 
     class Session:
@@ -101,7 +101,7 @@ async def test_failed_mutation_never_retries_or_falls_back():
             calls.append(name)
             raise TimeoutError("already sent")
 
-    for engine in ["blend_ai", "secure"]:
+    for engine in ["modeling", "authenticated"]:
         gateway.sessions[engine] = Session()
         gateway.health[engine] = {}
         gateway.catalog.add(
@@ -115,7 +115,7 @@ async def test_failed_mutation_never_retries_or_falls_back():
 
 
 async def test_calls_to_different_engines_are_serialized():
-    gateway = Gateway(Config([], ["blend_ai", "secure"]))
+    gateway = Gateway(Config([], ["modeling", "authenticated"]))
     active, maximum = 0, 0
 
     class Session:
@@ -127,14 +127,14 @@ async def test_calls_to_different_engines_are_serialized():
             active -= 1
             return types.CallToolResult(content=[])
 
-    for engine in ["blend_ai", "secure"]:
+    for engine in ["modeling", "authenticated"]:
         gateway.sessions[engine] = Session()
         gateway.catalog.add(
             engine, types.Tool(name="get_scene_info", inputSchema={"type": "object"})
         )
     await asyncio.gather(
         gateway.call("scene.inspect", {}),
-        gateway.call("scene.inspect", {"implementation": "secure"}),
+        gateway.call("scene.inspect", {"implementation": "authenticated"}),
     )
     assert maximum == 1
 
@@ -156,7 +156,7 @@ async def test_optional_missing_engine_is_visible_but_has_no_tools():
 
 
 async def test_screenshot_json_becomes_native_image_without_losing_structured_data():
-    gateway = Gateway(Config([], ["blend_ai"]))
+    gateway = Gateway(Config([], ["modeling"]))
     payload = {"base64": "aGVsbG8=", "width": 1, "height": 1, "format": "png"}
 
     class Session:
@@ -166,9 +166,9 @@ async def test_screenshot_json_becomes_native_image_without_losing_structured_da
                 structuredContent=payload,
             )
 
-    gateway.sessions["blend_ai"] = Session()
+    gateway.sessions["modeling"] = Session()
     gateway.catalog.add(
-        "blend_ai",
+        "modeling",
         types.Tool(name="get_viewport_screenshot", inputSchema={"type": "object"}),
     )
     result = await gateway.call("viewport.screenshot", {})
@@ -179,7 +179,7 @@ async def test_screenshot_json_becomes_native_image_without_losing_structured_da
 
 
 async def test_elicitation_forwards_user_answer_with_request_identity():
-    gateway = Gateway(Config([], ["community"]))
+    gateway = Gateway(Config([], ["assets"]))
     forwarded = []
     answer = types.ElicitResult(action="decline")
 
@@ -198,9 +198,9 @@ async def test_elicitation_forwards_user_answer_with_request_identity():
             assert response is answer
             return types.CallToolResult(content=[])
 
-    gateway.sessions["community"] = Session()
+    gateway.sessions["assets"] = Session()
     gateway.catalog.add(
-        "community", types.Tool(name="get_scene_info", inputSchema={"type": "object"})
+        "assets", types.Tool(name="get_scene_info", inputSchema={"type": "object"})
     )
     await gateway.call(
         "scene.inspect",

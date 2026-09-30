@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "blender-unified"
-version = "0.2.1"
-description = "One consolidated MCP interface for Blender's community, Blend AI, Blender Lab, and secure servers"
+version = "0.3.0"
+description = "A self-contained Blender MCP toolset for modeling, materials, animation, rendering and assets"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.11"

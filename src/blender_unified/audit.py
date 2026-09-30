@@ -63,10 +63,10 @@ def summary(result):
 def make_case(engine, name, schema, directory):
     required = schema.get("required", [])
     args = {k: COMMON[k] for k in required if k in COMMON}
-    extra = EXTRA.get(name, "") if engine == "blend_ai" else ""
-    check = CHECKS.get(name) if engine == "blend_ai" else None
+    extra = EXTRA.get(name, "") if engine == "modeling" else ""
+    check = CHECKS.get(name) if engine == "modeling" else None
     blocked = None
-    if engine == "blend_ai":
+    if engine == "modeling":
         args.update(OVERRIDES.get(name, {}))
         if name.startswith("booltool_"):
             args.update(object_name="AuditMesh", target_name="AuditTarget")
@@ -146,7 +146,7 @@ def make_case(engine, name, schema, directory):
             extra = "scene.blendermcp_use_polyhaven=True\n"
             if name in ("get_polyhaven_categories", "search_polyhaven_assets"):
                 args["asset_type"] = "textures"
-                if engine == "community" and name == "search_polyhaven_assets":
+                if engine == "assets" and name == "search_polyhaven_assets":
                     args.update(query="wood", limit=2)
             elif name in ("get_polyhaven_asset_preview", "download_polyhaven_asset"):
                 args["asset_id"] = "wood_floor"
@@ -159,7 +159,7 @@ def make_case(engine, name, schema, directory):
                 args["texture_id"] = "audit_texture"
                 extra += "img=bpy.data.images.load(os.path.join(AUDIT_DIR,'texture.png'),check_existing=False)\nimg.name='audit_texture_diffuse'\nimg['polyhaven_id']='audit_texture'\nimg['polyhaven_map']='Diffuse'\nimg['polyhaven_role']='base_color'\n"
                 check = "any('audit_texture' in m.name and any(n.type=='TEX_IMAGE' and n.image is not None for n in m.node_tree.nodes) for m in bpy.data.objects['AuditMesh'].data.materials)"
-        elif engine == "lab":
+        elif engine == "reference":
             if name.endswith("_for_cli"):
                 args["blend_file"] = str(directory / "base.blend")
             if name == "execute_blender_code_for_cli":
@@ -222,28 +222,28 @@ async def run(args):
                 .contents[0]
                 .text
             )
-            report["expected_registrations"] = inventory["upstream_tools"]
+            report["expected_registrations"] = inventory["implementation_routes"]
             rows = [
                 (t["name"], v) for t in inventory["tools"] for v in t["implementations"]
             ]
             # File loading goes last, because it changes Blender's scene lifecycle.
             rows.sort(
                 key=lambda item: (
-                    item[1]["upstream_tool"] == "open_file",
-                    item[1]["engine"] != "blend_ai",
-                    item[1]["upstream_tool"],
+                    item[1]["tool_name"] == "open_file",
+                    item[1]["engine"] != "modeling",
+                    item[1]["tool_name"],
                     item[1]["engine"],
                 )
             )
             if args.filter:
                 rows = [
-                    r for r in rows if r[1]["upstream_tool"] in args.filter.split(",")
+                    r for r in rows if r[1]["tool_name"] in args.filter.split(",")
                 ]
 
             async def code(script):
                 result = await client.call_tool(
                     "code.execute",
-                    {"implementation": "lab", "code": "import bpy, os\n" + script},
+                    {"implementation": "reference", "code": "import bpy, os\n" + script},
                 )
                 error = problem(result)
                 if error:
@@ -267,7 +267,7 @@ async def run(args):
                 f"bpy.ops.wm.save_as_mainfile(filepath={str(directory / 'base.blend')!r})\nbpy.ops.export_scene.gltf(filepath={str(directory / 'base.glb')!r},export_format='GLB',use_selection=True)\nresult={{'saved':True}}"
             )
             for canonical, variant in rows:
-                name = variant["upstream_tool"]
+                name = variant["tool_name"]
                 engine = variant["engine"]
                 row = {"engine": engine, "tool": name, "canonical": canonical}
                 report["results"].append(row)
@@ -293,7 +293,7 @@ async def run(args):
                             row.update(status="blocked", reason=error)
                     else:
                         row["response"] = summary(result)
-                        if engine == "lab" and name.startswith("render_"):
+                        if engine == "reference" and name.startswith("render_"):
                             payload = decode(result)
                             output = payload.get("result", payload)["filepath"]
                             check = f"os.path.isfile({output!r}) and os.path.getsize({output!r}) > 0"
